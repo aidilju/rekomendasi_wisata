@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html class="light" lang="id">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Destinasi Impian - Rekomendasi Pariwisata</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com" rel="preconnect" />
+    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect" />
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;700;800&amp;display=swap"
+        rel="stylesheet" />
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#137fec",
+                        "background-light": "#f6f7f8", "background-dark": "#101922",
+                        "card-light": "#ffffff", "card-dark": "#192734",
+                        "text-primary-light": "#111418", "text-primary-dark": "#f0f2f4",
+                        "text-secondary-light": "#617589", "text-secondary-dark": "#a0b3c6",
+                        "border-light": "#dbe0e6", "border-dark": "#324354"
+                    },
+                    fontFamily: { "display": ["Plus Jakarta Sans", "sans-serif"] },
+                },
+            },
+        }
+    </script>
+    <style>
+        .spinner {
+            border-top-color: transparent;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* --- PERUBAHAN DIMULAI DI SINI --- */
+        body {
+            /* Ganti URL ini dengan gambar Anda */
+            background-image: url('/static/images/backgroundwisata.jpg');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            /* background-attachment: fixed penting untuk efek blur yang benar saat scroll */
+        }
+
+        /* --- PERUBAHAN SELESAI DI SINI --- */
+    </style>
+</head>
+
+<body class="font-display text-text-primary-light dark:text-text-primary-dark">
+    <div class="relative flex min-h-screen w-full flex-col">
+        <div class="flex h-full grow flex-col">
+            <div class="flex flex-1 justify-center py-5 sm:px-6 lg:px-8">
+                <div class="flex max-w-4xl flex-1 flex-col px-4">
+
+                    <main class="flex flex-col items-center py-10 md:py-16 px-4">
+                        <div class="flex w-full flex-col items-center gap-3 text-center mb-8">
+                            <h1 class="text-3xl font-black md:text-5xl text-[#0e3c6b]">Temukan Destinasi Impianmu</h1>
+                            <p class="max-w-xl text-text-secondary-light">Ceritakan liburan seperti apa yang kamu
+                                inginkan, kami carikan tempatnya.
+                            </p>
+                        </div>
+
+                        <div class="w-full max-w-2xl flex flex-col gap-6">
+                            <div class="flex flex-col">
+                                <textarea id="vacation-description"
+                                    class="form-textarea w-full rounded-lg bg-white/50 dark:bg-card-dark/70 backdrop-blur-lg border-border-light dark:border-border-dark p-4 min-h-36 focus:ring-primary"
+                                    placeholder="Contoh: Saya ingin ke pantai pasir putih yang sepi di Bali..."></textarea>
+                            </div>
+                            <div class="flex justify-start">
+                                <button id="recommend-button"
+                                    class="flex items-center justify-center rounded-lg h-12 px-8 bg-[#08539e] text-white font-bold hover:bg-[#0e3c6b] transition-all disabled:opacity-70">
+                                    <span id="button-text">Cari Rekomendasi</span>
+                                    <div id="button-spinner"
+                                        class="spinner w-5 h-5 border-2 border-white rounded-full hidden"></div>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div id="error-message" class="w-full max-w-2xl mt-4 text-red-500 text-center hidden"></div>
+
+                        <section id="results-section" class="w-full mt-16 hidden">
+                            <h2 class="text-2xl font-bold pb-6">Hasil Rekomendasi</h2>
+                            <div id="results-container" class="grid grid-cols-1 gap-6"></div>
+                        </section>
+                    </main>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const recommendButton = document.getElementById('recommend-button');
+        const buttonText = document.getElementById('button-text');
+        const buttonSpinner = document.getElementById('button-spinner');
+        const vacationTextarea = document.getElementById('vacation-description');
+        const resultsSection = document.getElementById('results-section');
+        const resultsContainer = document.getElementById('results-container');
+        const errorMessage = document.getElementById('error-message');
+
+        recommendButton.addEventListener('click', async () => {
+            const query = vacationTextarea.value.trim();
+            if (!query) return;
+
+            recommendButton.disabled = true;
+            buttonText.classList.add('hidden');
+            buttonSpinner.classList.remove('hidden');
+            errorMessage.classList.add('hidden');
+            resultsSection.classList.add('hidden');
+            resultsContainer.innerHTML = '';
+
+            try {
+                const response = await fetch('/recommend', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query: query }),
+                });
+
+                const text = await response.text();
+                let results;
+                try {
+                    results = JSON.parse(text);
+                } catch (e) {
+                    throw new Error("Server error (Invalid JSON). Cek terminal Flask.");
+                }
+
+                if (!response.ok) throw new Error(results.error || 'Terjadi kesalahan.');
+
+                if (results.length === 0) {
+                    errorMessage.textContent = 'Tidak ditemukan destinasi yang cocok. Coba kata kunci lain.';
+                    errorMessage.classList.remove('hidden');
+                } else {
+                    results.forEach(item => {
+                        resultsContainer.innerHTML += createCard(item);
+                    });
+                    resultsSection.classList.remove('hidden');
+                }
+
+            } catch (error) {
+                errorMessage.textContent = error.message;
+                errorMessage.classList.remove('hidden');
+            } finally {
+                recommendButton.disabled = false;
+                buttonText.classList.remove('hidden');
+                buttonSpinner.classList.add('hidden');
+            }
+        });
+
+        function createCard(item) {
+            const nama = item.nama_objek || "Nama tidak diketahui";
+            const provinsi = item.provinsi || "Provinsi tidak diketahui";
+            const alamat = item.alamat || "-";
+            const skor = item.skor ? (item.skor * 100).toFixed(0) : 0;
+
+            /*
+                --- PERUBAHAN DI SINI ---
+                Mengganti 'bg-card-light dark:bg-card-dark' pada div utama
+                Menjadi 'bg-white/50 dark:bg-card-dark/70 backdrop-blur-lg' untuk efek kaca
+            */
+            return `
+        <div class="flex flex-col gap-4 rounded-xl border border-border-light dark:border-border-dark bg-white/50 dark:bg-card-dark/70 backdrop-blur-lg p-6 hover:shadow-lg transition-all">
+
+            <div class="flex justify-between items-start">
+                <h3 class="text-xl font-bold">${nama}</h3>
+                <span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full font-bold">
+                    Skor: ${skor}%
+                </span>
+            </div>
+
+            <p class="text-sm text-primary font-medium">${provinsi}</p>
+            <p class="text-sm text-text-secondary-light">${alamat}</p>
+
+        </div>
+    `;
+        }
+    </script>
+</body>
+
+</html>
