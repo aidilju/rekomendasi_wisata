@@ -6,11 +6,15 @@ import re
 from Sastrawi.Stemmer.StemmerFactory import StemmerFactory
 from sklearn.feature_extraction.text import TfidfVectorizer
 from rank_bm25 import BM25Okapi
+import pickle
 import joblib
 import os
 import time
 
 # --- KONFIGURASI ---
+# Nama file model yang baru: rekomendasi_model.pkl
+MODEL_FILENAME = 'rekomendasi_model.pkl'
+
 print("1. Mempersiapkan Library & Sastrawi...")
 try:
     nltk.data.find('corpora/stopwords')
@@ -51,7 +55,7 @@ def build_and_save_model():
     print("2. Membaca Excel...")
     data = pd.read_excel(path)
     # Memastikan hanya kolom yang ada di data Anda
-    data = data[['FID', 'provinsi', 'nama_objek', 'alamat', 'deskripsi']]
+    data = data[['FID', 'provinsi', 'nama_destinasi', 'alamat', 'deskripsi']]
 
     # 2. Preprocessing (Berat di sini)
     print("3. Melakukan Preprocessing (Stemming)... Harap bersabar.")
@@ -67,17 +71,18 @@ def build_and_save_model():
     bm25 = BM25Okapi(tokenized_corpus)
 
     # 4. Simpan Model
-    print("5. Menyimpan ke 'model.joblib'...")
+    print(f"5. Menyimpan ke '{MODEL_FILENAME}'...")
     package = {
         'data_df': data,
         'vectorizer': vectorizer,
         'tfidf_matrix': tfidf_matrix,
         'bm25': bm25
     }
-    joblib.dump(package, 'model.joblib')
+    # Perubahan di sini: Menggunakan MODEL_FILENAME baru
+    joblib.dump(package, MODEL_FILENAME)
     
     print(f"\n[SUKSES] Model selesai dibuat dalam {time.time() - start_time:.2f} detik.")
-    print("Sekarang jalankan 'python app.py'.")
+    print(f"Sekarang model bernama '{MODEL_FILENAME}' siap digunakan.")
 
 if __name__ == "__main__":
     build_and_save_model()
